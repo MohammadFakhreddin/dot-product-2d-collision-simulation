@@ -20,12 +20,17 @@
  ******************************************************************************************/
 #include "MainWindow.h"
 #include "Game.h"
+#include "random_generator/RandomGenerator.h"
+#include "entity/Entity.h"
 
 Game::Game( MainWindow& wnd )
 	:
 	wnd( wnd ),
 	gfx( wnd )
 {
+	for (int i = 0; i < NUM_OF_ENTITIES; i++) {
+		pendingEntities.emplace_back(Entity(circlePolyLine, VecInt(0, 0), VecInt(0, 0)));
+	}
 }
 
 void Game::Go()
@@ -38,8 +43,63 @@ void Game::Go()
 
 void Game::UpdateModel()
 {
+	if (wnd.kbd.KeyIsPressed('A')) {
+		stick.addRotation(-0.01);
+	}
+	else if (wnd.kbd.KeyIsPressed('D'))
+	{
+		stick.addRotation(0.01);
+	}
+	stick.update(1);
+	if(activeEntities.size()==0 && pendingEntities.size()!=0){
+		auto& newActiveEntity = pendingEntities.at(0);
+		pendingEntities.erase(pendingEntities.begin() + 0);
+		auto center = RandomGenerator::getInstance()->generateVecIntWithSeperateRangeValue(
+			600,
+			500,
+			800,
+			600
+		);
+		auto velocity = RandomGenerator::getInstance()->generateVecIntWithSeperateRangeValue(
+			-4,
+			-4,
+			-2,
+			-2
+		);
+		newActiveEntity.reset(VecDouble(center), VecDouble(velocity));
+		activeEntities.emplace_back(newActiveEntity);
+	}
+	for (int i = activeEntities.size() - 1; i >= 0; i--) {
+		if (activeEntities[i].getIsOutOfScreen()) {
+			const auto& newPendingEntity = activeEntities.at(i);
+			activeEntities.erase(activeEntities.begin() + i);
+			pendingEntities.emplace_back(newPendingEntity);
+			continue;
+		}
+		if (activeEntities[i].getCollisionCooldown() <=0) {
+			collisionVector->erase(collisionVector->begin(), collisionVector->end());
+			Entity::isPolyLineColliding(stick, activeEntities[i], collisionVector);
+			if (collisionVector->size() > 0) {
+				activeEntities[i].setColissionCooldown(100);
+				VecDouble colidedVector = VecDouble(collisionVector->at(0) - collisionVector->at(1));
+				VecDouble colidedVectorHat = colidedVector.hat();
+				VecDouble activeEntityVector = VecDouble(activeEntities[i].getVelocity());
+				VecDouble activeEntityHat = activeEntityVector.hat();
+				VecDouble newVelocity =  colidedVectorHat * 2 * (activeEntityVector * colidedVectorHat) - activeEntityVector;
+				activeEntities[i].setVelocity(newVelocity.getX(), newVelocity.getY());
+			}
+		}
+	}
+	for (int i = activeEntities.size() - 1; i >= 0; i--) {
+		//TODO Use frame timer instead
+		activeEntities.at(i).update(1);
+	}
 }
 
-void Game::ComposeFrame()
+void Game::ComposeFrame()   
 {
+	for (int i = 0; i < activeEntities.size(); i++) {
+		activeEntities.at(i).draw(gfx);
+	}
+	stick.draw(gfx);
 }

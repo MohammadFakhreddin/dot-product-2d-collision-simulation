@@ -358,3 +358,136 @@ std::wstring Graphics::Exception::GetExceptionType() const
 {
 	return L"Chili Graphics Exception";
 }
+
+void Graphics::DrawLine(
+	int rawStartX,
+	int rawStartY,
+	int rawEndX,
+	int rawEndY,
+	Color color
+)
+{
+	if (
+		(rawStartX < 0 && rawEndX < 0) ||
+		(rawStartX >= Graphics::ScreenWidth && rawEndX >= Graphics::ScreenWidth) ||
+		(rawStartY < 0 && rawEndY < 0) ||
+		(rawStartY >= Graphics::ScreenHeight && rawEndY >= Graphics::ScreenHeight)
+	) {
+		return;
+	}
+	int startX = rawStartX;
+	int startY = rawStartY;
+	int endX = rawEndX;
+	int endY = rawEndY;
+	bool isMInfinite = (startX - endX) == 0;
+	float realM = (float)(startY - endY) / (float)(startX - endX);
+	{
+		if (startX < 0) {
+			if (isMInfinite==false) {
+				startY = (int)(realM * (0 - startX) + startY);
+			}
+			startX = 0;
+		}
+		if (startX >= Graphics::ScreenWidth) {
+			if (isMInfinite==false) {
+				startY = int(realM * (Graphics::ScreenWidth - 1 - startX) + startY);
+			}
+			startX = Graphics::ScreenWidth - 1;
+		}
+		if (endX < 0) {
+			if (isMInfinite == false) {
+				endY = int(realM * (0 - endX) + endY);
+			}
+			endX = 0;
+		}
+		if (endX >= Graphics::ScreenWidth) {
+			if (isMInfinite == false) {
+				endY = int(realM * (Graphics::ScreenWidth - 1 - endX) + endY);
+			}
+			endX = Graphics::ScreenWidth - 1;
+		}
+		if (startY < 0) {
+			if (isMInfinite==false) {
+				startX = int((((float)(0 - startY)) / realM) + startX);
+			}
+			startY = 0;
+		}
+		if (startY >= Graphics::ScreenHeight) {
+			if (isMInfinite==false) {
+				startX = int(((float)(Graphics::ScreenHeight - 1 - startY) / realM) + startX);
+			}
+			startY = Graphics::ScreenHeight - 1;
+		}
+		if (endY < 0) {
+			if (isMInfinite == false) {
+				endX = int((((float)(0 - endY)) / realM) + endX);
+			}
+			endY = 0;
+		}
+		if (endY >= Graphics::ScreenHeight) {
+			if (isMInfinite == false) {
+				endX = int(((float)(Graphics::ScreenHeight - 1 - endY) / realM) + endX);
+			}
+			endY = Graphics::ScreenHeight - 1;
+		}
+	}
+	{
+		if (
+			endX < 0 || 
+			endX >= Graphics::ScreenWidth || 
+			startX < 0 || 
+			startX >= Graphics::ScreenWidth ||
+			startY<0 ||
+			startY>=Graphics::ScreenHeight ||
+			endY < 0 ||
+			endY >=Graphics::ScreenHeight ||
+			(
+				startX==endX && 
+				startY==endY
+			)
+		) {
+			return;
+		}
+	} 
+	{
+		const bool isBasedOnX = abs(startY - endY) <= abs(startX - endX);
+		float m = isBasedOnX
+			? realM
+			: (float)(1) / realM;
+		int primaryStartValue = isBasedOnX ? startX : startY;
+		int primaryEndValue = isBasedOnX ? endX : endY;
+		int secondaryStartValue = isBasedOnX ? startY : startX;
+		int secondaryEndValue = isBasedOnX ? endY : endX;
+		int primaryStepValue = primaryEndValue > primaryStartValue ? 1 : -1;
+		float currentSecondaryValue = secondaryStartValue;
+		float secondaryStepValue = m * (
+			(
+				m > 0 && secondaryEndValue < secondaryStartValue
+				) || (
+					m < 0 && secondaryStartValue < secondaryEndValue
+					) ? -1 : 1
+			);
+		for (
+			int currentPrimaryValue = primaryStartValue; 
+			currentPrimaryValue != primaryEndValue; 
+			currentPrimaryValue += primaryStepValue
+		) {
+			if (isBasedOnX) {
+				Graphics::PutPixel(
+					(int)currentPrimaryValue,
+					(int)currentSecondaryValue,
+					color
+				);
+			}
+			else
+			{
+				Graphics::PutPixel(
+					(int)currentSecondaryValue,
+					(int)currentPrimaryValue,
+					color
+				);
+			}
+			currentSecondaryValue += secondaryStepValue;
+		}
+	}
+}

@@ -23,6 +23,11 @@
 #include "Keyboard.h"
 #include "Mouse.h"
 #include "Graphics.h"
+#include "VecTemplate.h"
+#include <vector>
+#include "shape_generator/ShapeGenerator.h"
+#include "entity/Entity.h"
+#include "random_generator/RandomGenerator.h"
 
 class Game
 {
@@ -43,4 +48,11 @@ private:
 	/********************************/
 	/*  User Variables              */
 	/********************************/
+	std::vector<VecFloat> circlePolyLine = ShapeGenerator::gear(50,10);
+	std::vector<VecFloat> stickPolyLine = ShapeGenerator::rectangle(50, 550);
+	static constexpr int NUM_OF_ENTITIES = 2;
+	std::vector<Entity> activeEntities;
+	std::vector<Entity> pendingEntities;
+	Entity stick = Entity(stickPolyLine, VecInt(300, 200), VecInt(0, 0),0);
+	std::unique_ptr<std::vector<VecInt>> collisionVector = std::make_unique<std::vector<VecInt>>();
 };
